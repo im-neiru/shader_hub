@@ -26,6 +26,11 @@ impl Renderer {
             })
             .map_err(|e| JsValue::from_str(&e.to_string()))
     }
+
+    #[wasm_bindgen(js_name = resize)]
+    pub fn resize(&mut self, width: u32, height: u32) {
+        self.inner.resize(width, height);
+    }
 }
 
 impl Drop for Renderer {

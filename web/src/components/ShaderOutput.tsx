@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef } from "react";
 
 type ShaderOutputProps = {
   code: string;
@@ -11,15 +11,17 @@ export default function ShaderOutput({ code }: ShaderOutputProps) {
 
   useEffect(() => {
     let cancelled = false;
-    let renderer: import('@/wasm').Renderer | undefined;
+    let renderer: import("@/wasm").Renderer | undefined;
+    let observer: ResizeObserver | undefined;
 
     async function initialize() {
-      const wasm = await import('@/wasm');
-
+      const wasm = await import("@/wasm");
       await wasm.default();
 
       const canvas = canvasRef.current;
-      if (!canvas || cancelled) {
+      const container = canvas?.parentElement;
+
+      if (!canvas || !container || cancelled) {
         return;
       }
 
@@ -30,23 +32,55 @@ export default function ShaderOutput({ code }: ShaderOutputProps) {
         return;
       }
 
+      let width = 0;
+      let height = 0;
 
-      console.log(code);
+      const resize = () => {
+        if (!renderer || cancelled) {
+          return;
+        }
+
+        const nextWidth = Math.max(1, container.clientWidth);
+        const nextHeight = Math.max(1, container.clientHeight);
+
+        if (nextWidth === width && nextHeight === height) {
+          return;
+        }
+
+        width = nextWidth;
+        height = nextHeight;
+
+        canvas.width = nextWidth;
+        canvas.height = nextHeight;
+
+        renderer.resize(nextWidth, nextHeight);
+      };
+
+      observer = new ResizeObserver(resize);
+      observer.observe(container);
+
+      resize();
     }
 
     void initialize();
 
     return () => {
       cancelled = true;
+      observer?.disconnect();
+
+      observer = undefined;
       renderer = undefined;
     };
-  }, [code]);
+  }, []);
 
   return (
     <canvas
       ref={canvasRef}
-      width={1280}
-      height={720}
+      style={{
+        display: "block",
+        width: "100%",
+        height: "100%",
+      }}
     />
   );
 }

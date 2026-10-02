@@ -23,4 +23,11 @@ common = { workspace = true }
 wasm-bindgen-test = "0.3.34"
 
 [profile.release]
-opt-level = "s"
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true
+debug = false
+incremental = false
+overflow-checks = false

@@ -1,7 +1,7 @@
 "use client";
 
-import { useGpuWasm } from "@/lib/hooks";
 import { useEffect, useRef } from "react";
+import { useGpuWasm } from "@/lib/hooks";
 
 type ShaderOutputProps = {
   code: string;

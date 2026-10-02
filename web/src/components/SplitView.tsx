@@ -1,5 +1,11 @@
 "use client";
-import { useRef, useState, type ReactNode, type PointerEvent } from "react";
+
+import {
+  type PointerEvent,
+  type ReactNode,
+  useRef,
+  useState,
+} from "react";
 
 type Props = {
   left: ReactNode;
@@ -8,7 +14,12 @@ type Props = {
   min?: number;
 };
 
-export function SplitView({ left, right, initial = 0.5, min = 0.3 }: Props) {
+export function SplitView({
+  left,
+  right,
+  initial = 0.5,
+  min = 0.3,
+}: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [ratio, setRatio] = useState(initial);
 
@@ -17,9 +28,16 @@ export function SplitView({ left, right, initial = 0.5, min = 0.3 }: Props) {
   };
 
   const onPointerMove = (e: PointerEvent<HTMLDivElement>) => {
-    if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+    if (!e.currentTarget.hasPointerCapture(e.pointerId)) {
+      return;
+    }
 
     const rect = rootRef.current?.getBoundingClientRect();
+
+    if (!rect) {
+      return;
+    }
+
     const r = (e.clientX - rect.left) / rect.width;
 
     setRatio(Math.min(1 - min, Math.max(min, r)));
@@ -28,26 +46,22 @@ export function SplitView({ left, right, initial = 0.5, min = 0.3 }: Props) {
   return (
     <div
       ref={rootRef}
+      className="grid size-full"
       style={{
-        display: "grid",
         gridTemplateColumns: `${ratio}fr 6px ${1 - ratio}fr`,
-        width: "100%",
-        height: "100%",
       }}
     >
-      <div style={{ position: "relative", overflow: "hidden", minWidth: 0 }}>
+      <div className="relative min-w-0 overflow-hidden">
         {left}
       </div>
+
       <div
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
-        style={{
-          cursor: "col-resize",
-          background: "#333",
-          touchAction: "none",
-        }}
+        className="cursor-col-resize touch-none bg-neutral-800"
       />
-      <div style={{ position: "relative", overflow: "hidden", minWidth: 0 }}>
+
+      <div className="relative min-w-0 overflow-hidden">
         {right}
       </div>
     </div>

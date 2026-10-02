@@ -3,7 +3,8 @@ use std::{
     rc::{Rc, Weak},
 };
 
-use web_sys::HtmlCanvasElement;
+use wasm_bindgen::JsValue;
+use web_sys::{HtmlCanvasElement, console::info_1};
 use wgpu::{
     BackendOptions, Backends, CompositeAlphaMode, InstanceDescriptor, InstanceFlags,
     MemoryBudgetThresholds, PresentMode, SurfaceColorSpace, SurfaceConfiguration, SurfaceTarget,
@@ -92,6 +93,21 @@ impl super::Renderer {
         .into_iter()
         .find(|mode| capabilities.present_modes.contains(mode))
         .unwrap_or(PresentMode::Fifo);
+
+        info_1(&JsValue::from_str(&format!(
+            "Surface format: {:#?}",
+            preferred_format
+        )));
+
+        info_1(&JsValue::from_str(&format!(
+            "Color space: {:#?}",
+            color_space
+        )));
+
+        info_1(&JsValue::from_str(&format!(
+            "Present mode: {:#?}",
+            present_mode
+        )));
 
         let alpha_mode = capabilities
             .alpha_modes

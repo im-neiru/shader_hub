@@ -6,6 +6,8 @@ edition = "2024"
 
 [dependencies]
 
+# diagnostics
+miette.workspace = true
 
 # gpu api:
 

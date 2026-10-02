@@ -1,7 +1,7 @@
 use miette::Diagnostic;
 use thiserror::Error;
 
-use wgpu::{RequestAdapterError, RequestDeviceError};
+use wgpu::{CreateSurfaceError, RequestAdapterError, RequestDeviceError};
 
 #[derive(Debug, Error, Diagnostic)]
 pub enum GpuInitError {
@@ -20,4 +20,8 @@ pub enum GpuInitError {
         help("the adapter may not support the required features or limits")
     )]
     Device(#[source] RequestDeviceError),
+
+    #[error("failed to create surface")]
+    #[diagnostic(code(gpu_manager::surface))]
+    Surface(#[source] CreateSurfaceError),
 }

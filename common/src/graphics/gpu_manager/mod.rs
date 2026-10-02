@@ -8,3 +8,10 @@ pub(crate) struct GpuManager {
     pub(crate) device: Device,
     pub(crate) queue: Queue,
 }
+
+impl GpuManager {
+    #[inline]
+    pub(crate) const fn get_instance(&self) -> &Instance {
+        &self.instance
+    }
+}

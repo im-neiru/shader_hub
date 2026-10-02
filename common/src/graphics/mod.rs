@@ -1,3 +1,5 @@
 mod gpu_manager;
+mod renderer;
 
-pub use gpu_manager::GpuManager;
+pub(crate) use gpu_manager::GpuManager;
+pub use renderer::Renderer;

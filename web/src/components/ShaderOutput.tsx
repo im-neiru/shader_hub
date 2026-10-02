@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+
 import { useGpuWasm } from "@/lib/hooks";
 
 type ShaderOutputProps = {
@@ -17,9 +18,11 @@ export default function ShaderOutput({ code }: ShaderOutputProps) {
     }
 
     const wasm = gpuWasm;
+
     let cancelled = false;
     let renderer: import("@/wasm").Renderer | undefined;
     let observer: ResizeObserver | undefined;
+    let animationFrame = 0;
 
     async function initialize() {
       const canvas = canvasRef.current;
@@ -64,17 +67,33 @@ export default function ShaderOutput({ code }: ShaderOutputProps) {
       observer.observe(container);
 
       resize();
+
+      const render = () => {
+        if (cancelled || !renderer) {
+          return;
+        }
+
+        renderer.render();
+
+        animationFrame = requestAnimationFrame(render);
+      };
+
+      animationFrame = requestAnimationFrame(render);
     }
 
     void initialize();
 
     return () => {
       cancelled = true;
+
+      cancelAnimationFrame(animationFrame);
+
       observer?.disconnect();
       observer = undefined;
+
       renderer = undefined;
     };
   }, [gpuWasm]);
 
-  return <canvas ref={canvasRef} className="block w-full h-full" />;
+  return <canvas ref={canvasRef} className="block h-full w-full" />;
 }

@@ -1,0 +1,27 @@
+[package]
+name = "common"
+version = "0.1.0"
+edition = "2024"
+
+
+[dependencies]
+
+# diagnostics
+thiserror.workspace = true
+miette.workspace = true
+
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+
+# gpu api
+wgpu = { workspace = true, features = ["webgpu", "webgl", "wgsl"] }
+
+# web interop
+wasm-bindgen.workspace = true
+wasm-bindgen-futures.workspace = true
+web-sys = { workspace = true, features = ["console"] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+
+# gpu api
+wgpu = { workspace = true, features = ["vulkan", "spirv"] }

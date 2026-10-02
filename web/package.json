@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "biome check",
     "format": "biome format --write",
-    "build:wasm": "wasm-pack build \"../wasm\" --target web --out-dir ../web/wasm --release"
+    "build:wasm": "wasm-pack build \"../wasm\" --target web --out-dir ../web/src/wasm --release"
   },
   "dependencies": {
     "@monaco-editor/react": "4.7.0",

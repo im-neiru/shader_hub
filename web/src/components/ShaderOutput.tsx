@@ -1,5 +1,6 @@
 "use client";
 
+import { useGpuWasm } from "@/lib/hooks";
 import { useEffect, useRef } from "react";
 
 type ShaderOutputProps = {
@@ -8,16 +9,19 @@ type ShaderOutputProps = {
 
 export default function ShaderOutput({ code }: ShaderOutputProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const gpuWasm = useGpuWasm();
 
   useEffect(() => {
+    if (!gpuWasm) {
+      return;
+    }
+
+    const wasm = gpuWasm;
     let cancelled = false;
     let renderer: import("@/wasm").Renderer | undefined;
     let observer: ResizeObserver | undefined;
 
     async function initialize() {
-      const wasm = await import("@/wasm");
-      await wasm.default();
-
       const canvas = canvasRef.current;
       const container = canvas?.parentElement;
 
@@ -67,20 +71,10 @@ export default function ShaderOutput({ code }: ShaderOutputProps) {
     return () => {
       cancelled = true;
       observer?.disconnect();
-
       observer = undefined;
       renderer = undefined;
     };
-  }, []);
+  }, [gpuWasm]);
 
-  return (
-    <canvas
-      ref={canvasRef}
-      style={{
-        display: "block",
-        width: "100%",
-        height: "100%",
-      }}
-    />
-  );
+  return <canvas ref={canvasRef} className="block w-full h-full" />;
 }

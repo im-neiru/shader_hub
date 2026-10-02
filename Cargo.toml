@@ -4,6 +4,8 @@ resolver = "3"
 
 [workspace.dependencies]
 
+# gpu api
+wgpu = { version = "30.0.1", default-features = false, features = ["std"] }
 
 # workspace crates
 common.path = "./common"

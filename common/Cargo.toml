@@ -3,4 +3,14 @@ name = "common"
 version = "0.1.0"
 edition = "2024"
 
+
 [dependencies]
+
+
+# gpu api:
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wgpu = { workspace = true, features = ["webgpu", "webgl", "wgsl"] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+wgpu = { workspace = true, features = ["vulkan", "spirv"] }

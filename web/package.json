@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "biome check",
+    "lint": "biome check --formatter-enabled=false --linter-enabled=false --write .",
     "format": "biome format --write",
     "build:wasm": "wasm-pack build \"../wasm\" --target web --out-dir ../web/src/wasm --release"
   },

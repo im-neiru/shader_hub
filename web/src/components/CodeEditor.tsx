@@ -1,8 +1,8 @@
 "use client";
 
+import type { EditorProps } from "@monaco-editor/react";
 import dynamic from "next/dynamic";
 import { useCallback, useState } from "react";
-import type { EditorProps } from "@monaco-editor/react";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
   ssr: false,

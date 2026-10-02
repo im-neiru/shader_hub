@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState, type ReactNode, type PointerEvent } from "react";
+import { type PointerEvent, type ReactNode, useRef, useState } from "react";
 
 type Props = {
   left: ReactNode;

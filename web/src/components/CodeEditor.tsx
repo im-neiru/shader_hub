@@ -40,7 +40,7 @@ const EDITOR_OPTIONS: EditorProps["options"] = {
 type CodeEditorProps = {
   initialCode?: string;
   onChange?: (code: string) => void;
-}
+};
 
 export default function CodeEditor({
   initialCode = DEFAULT_WGSL,

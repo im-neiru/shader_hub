@@ -19,7 +19,7 @@ export function SplitView({ left, right, initial = 0.5, min = 0.3 }: Props) {
   const onPointerMove = (e: PointerEvent<HTMLDivElement>) => {
     if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
 
-    const rect = rootRef.current!.getBoundingClientRect();
+    const rect = rootRef.current?.getBoundingClientRect();
     const r = (e.clientX - rect.left) / rect.width;
 
     setRatio(Math.min(1 - min, Math.max(min, r)));

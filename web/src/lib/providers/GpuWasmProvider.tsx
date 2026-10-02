@@ -2,7 +2,6 @@
 
 import {
   createContext,
-  useContext,
   useEffect,
   useRef,
   useSyncExternalStore,
@@ -22,7 +21,7 @@ export const GpuWasmContext = createContext<WasmModule | null | undefined>(
 
 function createGpuWasmStore(): GpuWasmStore {
   let gpuWasm: WasmModule | null = null;
-  let wasmPromise: Promise<void> | undefined;
+  let _wasmPromise: Promise<void> | undefined;
 
   const listeners = new Set<() => void>();
 
@@ -38,7 +37,7 @@ function createGpuWasmStore(): GpuWasmStore {
     },
 
     initialize() {
-      wasmPromise ??= (async () => {
+      _wasmPromise ??= (async () => {
         const wasm = await import("@/wasm");
 
         await wasm.default();

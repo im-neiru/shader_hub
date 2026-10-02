@@ -1,6 +1,8 @@
+
 [workspace]
 members = ["common", "wasm"]
 resolver = "3"
+
 
 [workspace.dependencies]
 
@@ -11,12 +13,18 @@ miette = { version = "7.6.0", default-features = false, features = [
     "fancy",
 ] }
 
+# byte conversion
+bytemuck = { version = "1.25.2", features = ["derive"] }
+
+# computer graphics math
+glam = { version = "0.33.12", features = ["bytemuck"] }
+
 # gpu api
 wgpu = { version = "30.0.1", default-features = false, features = ["std"] }
 
 # web interop
-wasm-bindgen-futures = "0.4.79"
 wasm-bindgen = "0.2.120"
+wasm-bindgen-futures = "0.4.79"
 web-sys = "0.3.106"
 
 # workspace crates

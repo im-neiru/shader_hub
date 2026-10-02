@@ -178,6 +178,8 @@ dependencies = [
 name = "common"
 version = "0.1.0"
 dependencies = [
+ "bytemuck",
+ "glam",
  "miette",
  "thiserror",
  "wasm-bindgen",
@@ -320,6 +322,15 @@ dependencies = [
  "khronos_api",
  "log",
  "xml-rs",
+]
+
+[[package]]
+name = "glam"
+version = "0.33.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "37bfe73dc8ec21f54d181e5a60554327ec3f1c600c455a75ccbfc65d2106a6c4"
+dependencies = [
+ "bytemuck",
 ]
 
 [[package]]

@@ -31,6 +31,11 @@ impl Renderer {
     pub fn resize(&mut self, width: u32, height: u32) {
         self.inner.resize(width, height);
     }
+
+    #[wasm_bindgen(js_name = render)]
+    pub fn render(&self) {
+        self.inner.render();
+    }
 }
 
 impl Drop for Renderer {

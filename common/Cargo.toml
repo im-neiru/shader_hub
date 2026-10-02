@@ -7,6 +7,7 @@ edition = "2024"
 [dependencies]
 
 # diagnostics
+thiserror.workspace = true
 miette.workspace = true
 
 # gpu api:

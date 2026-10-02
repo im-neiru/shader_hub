@@ -33,8 +33,8 @@ impl Renderer {
     }
 
     #[wasm_bindgen(js_name = render)]
-    pub fn render(&self) {
-        self.inner.render();
+    pub fn render(&mut self, canvas: &HtmlCanvasElement) {
+        self.inner.render(canvas);
     }
 }
 

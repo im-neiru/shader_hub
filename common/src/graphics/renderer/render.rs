@@ -3,27 +3,22 @@ use wgpu::{
     RenderPassColorAttachment, RenderPassDescriptor, StoreOp, TextureViewDescriptor,
 };
 
+pub trait SurfaceSize {
+    fn size(&self) -> (u32, u32);
+}
+
 impl super::Renderer {
-    pub fn render(&self) {
+    pub fn render(&mut self, surface: &impl SurfaceSize) {
         let Some(manager) = Self::get_manager() else {
             return;
         };
 
-        let (_, queue) = manager.get_device_and_queue();
-
-        let frame = match self.surface.get_current_texture() {
-            CurrentSurfaceTexture::Success(frame) | CurrentSurfaceTexture::Suboptimal(frame) => {
-                frame
-            }
-
-            CurrentSurfaceTexture::Timeout
-            | CurrentSurfaceTexture::Occluded
-            | CurrentSurfaceTexture::Outdated
-            | CurrentSurfaceTexture::Lost
-            | CurrentSurfaceTexture::Validation => return,
+        let Some(frame) = self.get_current_frame(surface) else {
+            return;
         };
 
         let device = manager.get_device();
+        let (_, queue) = manager.get_device_and_queue();
 
         let view = frame.texture.create_view(&TextureViewDescriptor::default());
 
@@ -57,5 +52,44 @@ impl super::Renderer {
 
         queue.submit(std::iter::once(encoder.finish()));
         queue.present(frame);
+    }
+
+    #[inline]
+    fn get_current_frame(&mut self, surface: &impl SurfaceSize) -> Option<wgpu::SurfaceTexture> {
+        match self.surface.get_current_texture() {
+            CurrentSurfaceTexture::Success(frame) | CurrentSurfaceTexture::Suboptimal(frame) => {
+                Some(frame)
+            }
+
+            CurrentSurfaceTexture::Outdated => {
+                let (width, height) = surface.size();
+
+                self.resize(width, height);
+
+                match self.surface.get_current_texture() {
+                    CurrentSurfaceTexture::Success(frame)
+                    | CurrentSurfaceTexture::Suboptimal(frame) => Some(frame),
+
+                    CurrentSurfaceTexture::Timeout
+                    | CurrentSurfaceTexture::Occluded
+                    | CurrentSurfaceTexture::Outdated
+                    | CurrentSurfaceTexture::Lost
+                    | CurrentSurfaceTexture::Validation => None,
+                }
+            }
+
+            CurrentSurfaceTexture::Timeout
+            | CurrentSurfaceTexture::Occluded
+            | CurrentSurfaceTexture::Lost
+            | CurrentSurfaceTexture::Validation => None,
+        }
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+impl SurfaceSize for web_sys::HtmlCanvasElement {
+    #[inline(always)]
+    fn size(&self) -> (u32, u32) {
+        (self.width(), self.height())
     }
 }

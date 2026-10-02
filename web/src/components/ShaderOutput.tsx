@@ -73,7 +73,7 @@ export default function ShaderOutput({ code }: ShaderOutputProps) {
           return;
         }
 
-        renderer.render();
+        renderer.render(canvas);
 
         animationFrame = requestAnimationFrame(render);
       };

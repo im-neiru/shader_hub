@@ -1,15 +1,11 @@
 "use client";
 
-import { CodeEditor, ShaderOutput } from "@/components";
-import { useState } from "react";
+import { CodeEditor, ShaderOutput, SplitView } from "@/components";
 
 export default function Home() {
-  const [code, setCode] = useState<string>("");
-
   return (
     <main className="flex h-screen w-screen bg-black">
-      <CodeEditor onChange={setCode} />
-      <ShaderOutput code={code} />
+      <SplitView left={<CodeEditor />} right={<ShaderOutput code={""} />} />
     </main>
   );
 }

@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useRef } from "react";
-import { CodeEditor, ShaderOutput, SplitView } from "@/components";
+import CodeEditor, { DEFAULT_WGSL } from "@/components/CodeEditor";
+import { ShaderOutput, SplitView } from "@/components";
 import type { ShaderOutputHandle } from "@/components/ShaderOutput";
 
 export default function Home() {
@@ -14,8 +15,8 @@ export default function Home() {
   return (
     <main className="flex h-screen w-screen bg-black">
       <SplitView
-        left={<CodeEditor onChange={handleChange} />}
-        right={<ShaderOutput controllerRef={outputRef} />}
+        left={<CodeEditor initialCode={DEFAULT_WGSL} onChange={handleChange} />}
+        right={<ShaderOutput initialWgsl={DEFAULT_WGSL} controllerRef={outputRef} />}
       />
     </main>
   );

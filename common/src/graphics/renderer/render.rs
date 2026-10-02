@@ -19,6 +19,7 @@ impl super::Renderer {
 
         let device = manager.get_device();
         let (_, queue) = manager.get_device_and_queue();
+        self.camera.update(queue);
 
         let view = frame.texture.create_view(&TextureViewDescriptor::default());
 
@@ -27,7 +28,7 @@ impl super::Renderer {
         });
 
         {
-            let _render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
+            let mut render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
                 label: Some("render pass"),
                 color_attachments: &[Some(RenderPassColorAttachment {
                     view: &view,
@@ -35,9 +36,9 @@ impl super::Renderer {
                     resolve_target: None,
                     ops: Operations {
                         load: LoadOp::Clear(Color {
-                            r: 0.8,
-                            g: 0.8,
-                            b: 0.8,
+                            r: 0.00103,
+                            g: 0.00097,
+                            b: 0.00348,
                             a: 1.0,
                         }),
                         store: StoreOp::Store,
@@ -48,6 +49,8 @@ impl super::Renderer {
                 occlusion_query_set: None,
                 multiview_mask: None,
             });
+
+            self.world.render(&mut render_pass, &self.camera);
         }
 
         queue.submit(std::iter::once(encoder.finish()));

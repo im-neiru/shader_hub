@@ -63,9 +63,9 @@ impl Camera {
 
         Self {
             target: Vec3::ZERO,
-            yaw: 0.0,
-            pitch: 0.3,
-            distance: 4.0,
+            yaw: 0.6,
+            pitch: 0.35,
+            distance: 5.0,
             fov_y: 45f32.to_radians(),
             aspect,
             near: 0.1,

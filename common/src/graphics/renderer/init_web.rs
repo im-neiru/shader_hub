@@ -8,7 +8,7 @@ use wgpu::{
     TextureFormat, TextureUsages, util::new_instance_with_webgpu_detection,
 };
 
-use super::camera::Camera;
+use super::{camera::Camera, world::World};
 use crate::{errors::GpuInitError, graphics::GpuManager};
 
 thread_local! {
@@ -17,7 +17,7 @@ thread_local! {
 }
 
 impl super::Renderer {
-    pub async fn from_canvas(canvas: HtmlCanvasElement) -> Result<Self, GpuInitError> {
+    pub async fn from_canvas(canvas: HtmlCanvasElement, wgsl: &str) -> Result<Self, GpuInitError> {
         let width = canvas.width().max(1);
         let height = canvas.height().max(1);
 
@@ -112,16 +112,28 @@ impl super::Renderer {
         surface.configure(manager.get_device(), &config);
 
         let camera = Camera::new(manager.get_device(), width as f32 / height as f32);
+        let world = World::new(manager.get_device(), &camera, preferred_format, wgsl);
 
         Ok(Self {
             surface,
             config,
             camera,
+            world,
         })
     }
 
     #[inline]
     pub(super) fn get_manager() -> Option<Rc<GpuManager>> {
         GPU_MANAGER.with(|cell| cell.borrow().clone())
+    }
+
+    pub async fn set_wgsl(&mut self, wgsl: &str) -> Result<(), String> {
+        let Some(manager) = Self::get_manager() else {
+            return Err("GPU manager is unavailable".to_owned());
+        };
+
+        self.world
+            .set_wgsl(manager.get_device(), self.config.format, wgsl)
+            .await
     }
 }

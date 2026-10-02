@@ -24,5 +24,7 @@ impl super::Renderer {
         self.config.height = height;
 
         self.surface.configure(manager.get_device(), &self.config);
+
+        self.camera.set_aspect(width as f32 / height as f32);
     }
 }

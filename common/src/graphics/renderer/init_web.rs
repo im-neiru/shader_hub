@@ -8,6 +8,7 @@ use wgpu::{
     TextureFormat, TextureUsages, util::new_instance_with_webgpu_detection,
 };
 
+use super::camera::Camera;
 use crate::{errors::GpuInitError, graphics::GpuManager};
 
 thread_local! {
@@ -110,7 +111,13 @@ impl super::Renderer {
 
         surface.configure(manager.get_device(), &config);
 
-        Ok(Self { surface, config })
+        let camera = Camera::new(manager.get_device(), width as f32 / height as f32);
+
+        Ok(Self {
+            surface,
+            config,
+            camera,
+        })
     }
 
     #[inline]

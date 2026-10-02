@@ -36,6 +36,11 @@ impl Renderer {
     pub fn render(&mut self, canvas: &HtmlCanvasElement) {
         self.inner.render(canvas);
     }
+
+    #[wasm_bindgen(js_name = setWgsl)]
+    pub fn set_wgsl(&mut self, _wgsl: String) {
+        // todo: later hehe
+    }
 }
 
 impl Drop for Renderer {

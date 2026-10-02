@@ -1,16 +1,43 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { type Ref, useEffect, useImperativeHandle, useRef } from "react";
 
 import { useGpuWasm } from "@/lib/hooks";
 
-type ShaderOutputProps = {
-  code: string;
+type GpuWasm = NonNullable<ReturnType<typeof useGpuWasm>>;
+type GpuRenderer = Awaited<ReturnType<GpuWasm["Renderer"]["create"]>>;
+
+export type ShaderOutputHandle = {
+  setWgsl: (wgsl: string) => void;
 };
 
-export default function ShaderOutput({ code }: ShaderOutputProps) {
+type ShaderOutputProps = {
+  controllerRef?: Ref<ShaderOutputHandle>;
+};
+
+export default function ShaderOutput({ controllerRef }: ShaderOutputProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gpuWasm = useGpuWasm();
+
+  const wgslRef = useRef("");
+  const rendererRef = useRef<GpuRenderer | undefined>(undefined);
+
+  useImperativeHandle(
+    controllerRef,
+    () => ({
+      setWgsl(wgsl) {
+        wgslRef.current = wgsl;
+
+        const renderer = rendererRef.current;
+        if (!renderer) {
+          return;
+        }
+
+        renderer.setWgsl(wgsl);
+      },
+    }),
+    [],
+  );
 
   useEffect(() => {
     if (!gpuWasm) {
@@ -20,7 +47,6 @@ export default function ShaderOutput({ code }: ShaderOutputProps) {
     const wasm = gpuWasm;
 
     let cancelled = false;
-    let renderer: import("@/wasm").Renderer | undefined;
     let observer: ResizeObserver | undefined;
     let animationFrame = 0;
 
@@ -32,18 +58,19 @@ export default function ShaderOutput({ code }: ShaderOutputProps) {
         return;
       }
 
-      renderer = await wasm.Renderer.create(canvas);
+      const renderer = await wasm.Renderer.create(canvas);
 
       if (cancelled) {
-        renderer = undefined;
         return;
       }
+
+      rendererRef.current = renderer;
 
       let width = 0;
       let height = 0;
 
       const resize = () => {
-        if (!renderer || cancelled) {
+        if (cancelled) {
           return;
         }
 
@@ -68,13 +95,16 @@ export default function ShaderOutput({ code }: ShaderOutputProps) {
 
       resize();
 
+      if (wgslRef.current) {
+        renderer.setWgsl(wgslRef.current);
+      }
+
       const render = () => {
-        if (cancelled || !renderer) {
+        if (cancelled) {
           return;
         }
 
         renderer.render(canvas);
-
         animationFrame = requestAnimationFrame(render);
       };
 
@@ -87,11 +117,10 @@ export default function ShaderOutput({ code }: ShaderOutputProps) {
       cancelled = true;
 
       cancelAnimationFrame(animationFrame);
-
       observer?.disconnect();
-      observer = undefined;
 
-      renderer = undefined;
+      observer = undefined;
+      rendererRef.current = undefined;
     };
   }, [gpuWasm]);
 

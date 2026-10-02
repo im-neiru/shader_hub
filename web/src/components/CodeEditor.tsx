@@ -2,7 +2,7 @@
 
 import type { EditorProps } from "@monaco-editor/react";
 import dynamic from "next/dynamic";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
   ssr: false,
@@ -60,14 +60,18 @@ export default function CodeEditor({
 }: CodeEditorProps) {
   const [code, setCode] = useState(initialCode);
 
-  const handleChange = useCallback(
-    (value: string | undefined) => {
-      const next = value ?? "";
-      setCode(next);
-      onChange?.(next);
-    },
-    [onChange],
-  );
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+
+  useEffect(() => {
+    onChangeRef.current?.(initialCode);
+  }, [initialCode]);
+
+  const handleChange = useCallback((value: string | undefined) => {
+    const next = value ?? "";
+    setCode(next);
+    onChangeRef.current?.(next);
+  }, []);
 
   return (
     <MonacoEditor

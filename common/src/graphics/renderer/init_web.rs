@@ -1,12 +1,15 @@
 use std::{cell::RefCell, rc::Rc};
 
 use wasm_bindgen::JsValue;
-use web_sys::{HtmlCanvasElement, console::info_1};
+use web_sys::{
+    HtmlCanvasElement,
+    console::{info_1, warn_1},
+};
 use wgpu::{
-    Adapter, BackendOptions, Backends, CompositeAlphaMode, InstanceDescriptor, InstanceFlags,
-    MemoryBudgetThresholds, PresentMode, SurfaceColorSpace, SurfaceConfiguration, SurfaceTarget,
-    TextureFormat, TextureFormatFeatureFlags, TextureUsages,
-    util::new_instance_with_webgpu_detection,
+    Adapter, BackendOptions, Backends, CompositeAlphaMode, Instance, InstanceDescriptor,
+    InstanceFlags, MemoryBudgetThresholds, PresentMode, SurfaceColorSpace, SurfaceConfiguration,
+    SurfaceTarget, TextureFormat, TextureFormatFeatureFlags, TextureUsages,
+    util::is_browser_webgpu_supported,
 };
 
 use super::{camera::Camera, world::World};
@@ -26,20 +29,19 @@ impl super::Renderer {
             Some(manager) => manager,
 
             None => {
-                let instance = new_instance_with_webgpu_detection(InstanceDescriptor {
-                    backends: Backends::BROWSER_WEBGPU | Backends::GL,
-                    flags: InstanceFlags::default(),
-                    memory_budget_thresholds: MemoryBudgetThresholds::default(),
-                    backend_options: BackendOptions::default(),
-                    display: None,
-                })
-                .await;
-
-                let surface = instance
-                    .create_surface(SurfaceTarget::Canvas(canvas.clone()))
-                    .map_err(GpuInitError::Surface)?;
-
-                let manager = Rc::new(GpuManager::new(instance, &surface).await?);
+                let manager = if is_browser_webgpu_supported().await {
+                    match Self::create_gpu_manager(&canvas, Backends::BROWSER_WEBGPU).await {
+                        Ok(manager) => manager,
+                        Err(error) => {
+                            warn_1(&JsValue::from_str(&format!(
+                                "WebGPU initialization failed; trying WebGL2: {error}"
+                            )));
+                            Self::create_gpu_manager(&canvas, Backends::GL).await?
+                        }
+                    }
+                } else {
+                    Self::create_gpu_manager(&canvas, Backends::GL).await?
+                };
 
                 GPU_MANAGER.with(|cell| {
                     *cell.borrow_mut() = Some(manager.clone());
@@ -175,5 +177,24 @@ impl super::Renderer {
         } else {
             1
         }
+    }
+
+    async fn create_gpu_manager(
+        canvas: &HtmlCanvasElement,
+        backend: Backends,
+    ) -> Result<Rc<GpuManager>, GpuInitError> {
+        let instance = Instance::new(InstanceDescriptor {
+            backends: backend,
+            flags: InstanceFlags::default(),
+            memory_budget_thresholds: MemoryBudgetThresholds::default(),
+            backend_options: BackendOptions::default(),
+            display: None,
+        });
+
+        let surface = instance
+            .create_surface(SurfaceTarget::Canvas(canvas.clone()))
+            .map_err(GpuInitError::Surface)?;
+
+        GpuManager::new(instance, &surface).await.map(Rc::new)
     }
 }

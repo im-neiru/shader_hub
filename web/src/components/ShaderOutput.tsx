@@ -248,7 +248,7 @@ export default function ShaderOutput({ controllerRef }: ShaderOutputProps) {
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
-        className="block h-full w-full touch-none cursor-grab active:cursor-grabbing"
+        className="block h-full w-full touch-none active:cursor-grabbing"
       />
       {shaderError && (
         <pre

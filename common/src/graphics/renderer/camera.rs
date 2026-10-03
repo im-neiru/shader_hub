@@ -171,3 +171,9 @@ impl Camera {
         self.dirty = false;
     }
 }
+
+impl super::Renderer {
+    pub fn orbit(&mut self, delta_yaw: f32, delta_pitch: f32) {
+        self.camera.orbit(delta_yaw, delta_pitch);
+    }
+}

@@ -32,6 +32,11 @@ impl Renderer {
         self.inner.resize(width, height);
     }
 
+    #[wasm_bindgen(js_name = orbit)]
+    pub fn orbit(&mut self, delta_yaw: f32, delta_pitch: f32) {
+        self.inner.orbit(delta_yaw, delta_pitch);
+    }
+
     #[wasm_bindgen(js_name = render)]
     pub fn render(&mut self, canvas: &HtmlCanvasElement) {
         self.inner.render(canvas);

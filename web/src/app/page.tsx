@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useRef } from "react";
-import CodeEditor, { DEFAULT_WGSL } from "@/components/CodeEditor";
 import { ShaderOutput, SplitView } from "@/components";
+import CodeEditor, { DEFAULT_WGSL } from "@/components/CodeEditor";
 import type { ShaderOutputHandle } from "@/components/ShaderOutput";
 
 export default function Home() {
@@ -13,10 +13,15 @@ export default function Home() {
   }, []);
 
   return (
-    <main className="flex h-screen w-screen bg-black">
+    <main className="flex h-screen w-screen bg-black  flex-col">
+      <div className="h-10 border-b border-border-border flex items-center px-2">
+        <div className="text-xl font-bold p-3">ShaderHub</div>
+      </div>
       <SplitView
         left={<CodeEditor initialCode={DEFAULT_WGSL} onChange={handleChange} />}
-        right={<ShaderOutput initialWgsl={DEFAULT_WGSL} controllerRef={outputRef} />}
+        right={
+          <ShaderOutput initialWgsl={DEFAULT_WGSL} controllerRef={outputRef} />
+        }
       />
     </main>
   );

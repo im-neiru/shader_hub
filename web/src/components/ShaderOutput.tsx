@@ -1,6 +1,13 @@
 "use client";
 
-import { type Ref, useEffect, useImperativeHandle, useRef, useState } from "react";
+import {
+  type PointerEvent,
+  type Ref,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 
 import { useGpuWasm } from "@/lib/hooks";
 
@@ -27,6 +34,52 @@ export default function ShaderOutput({ initialWgsl, controllerRef }: ShaderOutpu
   const compileQueueRef = useRef<Promise<void>>(Promise.resolve());
   const isRebuildingRef = useRef(false);
   const pendingResizeRef = useRef<[number, number] | null>(null);
+  const pendingOrbitRef = useRef<[number, number] | null>(null);
+  const pointerRef = useRef<{ id: number; x: number; y: number } | null>(null);
+
+  const orbit = (deltaYaw: number, deltaPitch: number) => {
+    const renderer = rendererRef.current;
+    if (!renderer) {
+      return;
+    }
+
+    if (isRebuildingRef.current) {
+      const [pendingYaw, pendingPitch] = pendingOrbitRef.current ?? [0, 0];
+      pendingOrbitRef.current = [pendingYaw + deltaYaw, pendingPitch + deltaPitch];
+      return;
+    }
+
+    renderer.orbit(deltaYaw, deltaPitch);
+  };
+
+  const handlePointerDown = (event: PointerEvent<HTMLCanvasElement>) => {
+    if (event.button !== 0) {
+      return;
+    }
+
+    event.currentTarget.setPointerCapture(event.pointerId);
+    pointerRef.current = { id: event.pointerId, x: event.clientX, y: event.clientY };
+  };
+
+  const handlePointerMove = (event: PointerEvent<HTMLCanvasElement>) => {
+    const pointer = pointerRef.current;
+    if (!pointer || pointer.id !== event.pointerId) {
+      return;
+    }
+
+    const deltaX = event.clientX - pointer.x;
+    const deltaY = event.clientY - pointer.y;
+    pointer.x = event.clientX;
+    pointer.y = event.clientY;
+
+    orbit(-deltaX * 0.01, -deltaY * 0.01);
+  };
+
+  const handlePointerUp = (event: PointerEvent<HTMLCanvasElement>) => {
+    if (pointerRef.current?.id === event.pointerId) {
+      pointerRef.current = null;
+    }
+  };
 
   const scheduleCompile = () => {
     if (compileTimerRef.current) {
@@ -60,6 +113,13 @@ export default function ShaderOutput({ initialWgsl, controllerRef }: ShaderOutpu
 
           if (pendingSize && rendererRef.current === renderer) {
             renderer.resize(...pendingSize);
+          }
+
+          const pendingOrbit = pendingOrbitRef.current;
+          pendingOrbitRef.current = null;
+
+          if (pendingOrbit && rendererRef.current === renderer) {
+            renderer.orbit(...pendingOrbit);
           }
         }
       });
@@ -173,7 +233,14 @@ export default function ShaderOutput({ initialWgsl, controllerRef }: ShaderOutpu
 
   return (
     <>
-      <canvas ref={canvasRef} className="block h-full w-full" />
+      <canvas
+        ref={canvasRef}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        className="block h-full w-full touch-none cursor-grab active:cursor-grabbing"
+      />
       {shaderError && (
         <pre
           role="alert"

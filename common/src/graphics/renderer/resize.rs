@@ -24,6 +24,13 @@ impl super::Renderer {
         self.config.height = height;
 
         self.surface.configure(manager.get_device(), &self.config);
+        self.msaa_texture = Self::create_msaa_texture(
+            manager.get_device(),
+            self.config.format,
+            width,
+            height,
+            self.msaa_samples,
+        );
 
         self.camera.set_aspect(width as f32 / height as f32);
     }

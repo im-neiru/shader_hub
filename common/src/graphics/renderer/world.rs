@@ -2,10 +2,10 @@ use glam::Vec3;
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
 use wgpu::{
     Buffer, BufferAddress, BufferUsages, ColorTargetState, Device, ErrorFilter, FragmentState,
-    FrontFace, IndexFormat, PipelineCompilationOptions, PipelineLayout, PipelineLayoutDescriptor,
-    PrimitiveState, PrimitiveTopology, RenderPass, RenderPipeline, RenderPipelineDescriptor,
-    ShaderModuleDescriptor, ShaderSource, TextureFormat, VertexAttribute, VertexBufferLayout,
-    VertexState, VertexStepMode,
+    FrontFace, IndexFormat, MultisampleState, PipelineCompilationOptions, PipelineLayout,
+    PipelineLayoutDescriptor, PrimitiveState, PrimitiveTopology, RenderPass, RenderPipeline,
+    RenderPipelineDescriptor, ShaderModuleDescriptor, ShaderSource, TextureFormat, VertexAttribute,
+    VertexBufferLayout, VertexState, VertexStepMode,
 };
 
 use super::camera::Camera;
@@ -50,6 +50,7 @@ impl World {
         camera: &Camera,
         surface_format: TextureFormat,
         wgsl: &str,
+        msaa_samples: u8,
     ) -> Self {
         let vertices = [
             // Front
@@ -112,7 +113,8 @@ impl World {
             immediate_size: 0,
         });
 
-        let pipeline = Self::create_pipeline(device, &pipeline_layout, surface_format, wgsl);
+        let pipeline =
+            Self::create_pipeline(device, &pipeline_layout, surface_format, wgsl, msaa_samples);
 
         Self {
             vertex,
@@ -128,15 +130,24 @@ impl World {
         device: &Device,
         surface_format: TextureFormat,
         wgsl: &str,
+        msaa_samples: u8,
     ) -> Result<(), String> {
         let error_scope = device.push_error_scope(ErrorFilter::Validation);
-        let pipeline = Self::create_pipeline(device, &self.pipeline_layout, surface_format, wgsl);
+
+        let pipeline = Self::create_pipeline(
+            device,
+            &self.pipeline_layout,
+            surface_format,
+            wgsl,
+            msaa_samples,
+        );
 
         if let Some(error) = error_scope.pop().await {
             return Err(error.to_string());
         }
 
         self.pipeline = pipeline;
+
         Ok(())
     }
 
@@ -145,6 +156,7 @@ impl World {
         pipeline_layout: &PipelineLayout,
         surface_format: TextureFormat,
         wgsl: &str,
+        msaa_samples: u8,
     ) -> RenderPipeline {
         let shader = device.create_shader_module(ShaderModuleDescriptor {
             label: Some("world shader"),
@@ -171,7 +183,11 @@ impl World {
 
             depth_stencil: None,
 
-            multisample: wgpu::MultisampleState::default(),
+            multisample: MultisampleState {
+                count: msaa_samples as u32,
+                mask: !0,
+                alpha_to_coverage_enabled: false,
+            },
 
             fragment: Some(FragmentState {
                 module: &shader,

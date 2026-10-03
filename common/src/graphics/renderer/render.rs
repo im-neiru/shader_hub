@@ -22,6 +22,11 @@ impl super::Renderer {
         self.camera.update(queue);
 
         let view = frame.texture.create_view(&TextureViewDescriptor::default());
+        let msaa_view = self
+            .msaa_texture
+            .as_ref()
+            .map(|texture| texture.create_view(&TextureViewDescriptor::default()));
+        let render_view = msaa_view.as_ref().unwrap_or(&view);
 
         let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor {
             label: Some("render encoder"),
@@ -31,9 +36,9 @@ impl super::Renderer {
             let mut render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
                 label: Some("render pass"),
                 color_attachments: &[Some(RenderPassColorAttachment {
-                    view: &view,
+                    view: render_view,
                     depth_slice: None,
-                    resolve_target: None,
+                    resolve_target: msaa_view.as_ref().map(|_| &view),
                     ops: Operations {
                         load: LoadOp::Clear(Color {
                             r: 0.00103,
@@ -41,7 +46,11 @@ impl super::Renderer {
                             b: 0.00348,
                             a: 1.0,
                         }),
-                        store: StoreOp::Store,
+                        store: if msaa_view.is_some() {
+                            StoreOp::Discard
+                        } else {
+                            StoreOp::Store
+                        },
                     },
                 })],
                 depth_stencil_attachment: None,

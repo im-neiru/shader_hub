@@ -56,3 +56,8 @@ impl Drop for Renderer {
         unsafe { ManuallyDrop::drop(&mut self.inner) };
     }
 }
+
+#[wasm_bindgen(js_name = getDefaultWgsl)]
+pub fn get_default_wgsl() -> String {
+    common::graphics::INITIAL_WGSL.to_string()
+}

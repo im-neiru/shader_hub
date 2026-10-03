@@ -2,7 +2,7 @@
 
 import type { BeforeMount, EditorProps } from "@monaco-editor/react";
 import dynamic from "next/dynamic";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useGpuWasm } from "@/lib/hooks";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
@@ -181,7 +181,6 @@ const handleBeforeMount: BeforeMount = (monaco) => {
 };
 
 type CodeEditorProps = {
-  initialCode?: string;
   onChange?: (code: string) => void;
 };
 
@@ -189,12 +188,20 @@ export default function CodeEditor({ onChange }: CodeEditorProps) {
   const gpuWasm = useGpuWasm();
 
   const [code, setCode] = useState(gpuWasm?.getDefaultWgsl() ?? "");
+  const hasEditedRef = useRef(false);
   const onChangeRef = useRef(onChange);
 
   onChangeRef.current = onChange;
 
+  useEffect(() => {
+    if (gpuWasm && !hasEditedRef.current) {
+      setCode(gpuWasm.getDefaultWgsl());
+    }
+  }, [gpuWasm]);
+
   const handleChange = useCallback((value: string | undefined) => {
     const next = value ?? "";
+    hasEditedRef.current = true;
     setCode(next);
     onChangeRef.current?.(next);
   }, []);

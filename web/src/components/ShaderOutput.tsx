@@ -3,6 +3,7 @@
 import {
   type PointerEvent,
   type Ref,
+  useCallback,
   useEffect,
   useImperativeHandle,
   useRef,
@@ -19,16 +20,16 @@ export type ShaderOutputHandle = {
 };
 
 type ShaderOutputProps = {
-  initialWgsl: string;
   controllerRef?: Ref<ShaderOutputHandle>;
 };
 
-export default function ShaderOutput({ initialWgsl, controllerRef }: ShaderOutputProps) {
+export default function ShaderOutput({ controllerRef }: ShaderOutputProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gpuWasm = useGpuWasm();
 
   const [shaderError, setShaderError] = useState<string | null>(null);
-  const wgslRef = useRef(initialWgsl);
+
+  const wgslRef = useRef<string | null>(null);
   const rendererRef = useRef<GpuRenderer | undefined>(undefined);
   const compileTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const compileQueueRef = useRef<Promise<void>>(Promise.resolve());
@@ -81,18 +82,18 @@ export default function ShaderOutput({ initialWgsl, controllerRef }: ShaderOutpu
     }
   };
 
-  const scheduleCompile = () => {
+  const scheduleCompile = useCallback(() => {
     if (compileTimerRef.current) {
       clearTimeout(compileTimerRef.current);
     }
 
     compileTimerRef.current = setTimeout(() => {
       const renderer = rendererRef.current;
-      if (!renderer) {
+      const source = wgslRef.current;
+      if (!renderer || source === null) {
         return;
       }
 
-      const source = wgslRef.current;
       compileQueueRef.current = compileQueueRef.current.then(async () => {
         isRebuildingRef.current = true;
 
@@ -124,7 +125,7 @@ export default function ShaderOutput({ initialWgsl, controllerRef }: ShaderOutpu
         }
       });
     }, 200);
-  };
+  }, []);
 
   useImperativeHandle(
     controllerRef,
@@ -134,7 +135,7 @@ export default function ShaderOutput({ initialWgsl, controllerRef }: ShaderOutpu
         scheduleCompile();
       },
     }),
-    [],
+    [scheduleCompile],
   );
 
   useEffect(() => {
@@ -143,6 +144,11 @@ export default function ShaderOutput({ initialWgsl, controllerRef }: ShaderOutpu
     }
 
     const wasm = gpuWasm;
+    const initialWgsl = wasm.getDefaultWgsl();
+
+    if (wgslRef.current === null) {
+      wgslRef.current = initialWgsl;
+    }
 
     let cancelled = false;
     let observer: ResizeObserver | undefined;
@@ -156,7 +162,7 @@ export default function ShaderOutput({ initialWgsl, controllerRef }: ShaderOutpu
         return;
       }
 
-      const renderer = await wasm.Renderer.create(canvas, initialWgsl);
+      const renderer = await wasm.Renderer.create(canvas);
 
       if (cancelled) {
         return;
@@ -229,7 +235,7 @@ export default function ShaderOutput({ initialWgsl, controllerRef }: ShaderOutpu
       observer = undefined;
       rendererRef.current = undefined;
     };
-  }, [gpuWasm, initialWgsl]);
+  }, [gpuWasm, scheduleCompile]);
 
   return (
     <>

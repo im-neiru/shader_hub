@@ -2,7 +2,7 @@
 
 import { useCallback, useRef } from "react";
 import { ShaderOutput, SplitView } from "@/components";
-import CodeEditor, { DEFAULT_WGSL } from "@/components/CodeEditor";
+import CodeEditor from "@/components/CodeEditor";
 import type { ShaderOutputHandle } from "@/components/ShaderOutput";
 
 export default function Home() {
@@ -18,10 +18,8 @@ export default function Home() {
         <div className="text-xl font-bold p-3">ShaderHub</div>
       </div>
       <SplitView
-        left={<CodeEditor initialCode={DEFAULT_WGSL} onChange={handleChange} />}
-        right={
-          <ShaderOutput initialWgsl={DEFAULT_WGSL} controllerRef={outputRef} />
-        }
+        left={<CodeEditor onChange={handleChange} />}
+        right={<ShaderOutput controllerRef={outputRef} />}
       />
     </main>
   );

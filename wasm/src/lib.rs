@@ -16,10 +16,10 @@ pub struct Renderer {
 #[wasm_bindgen]
 impl Renderer {
     #[wasm_bindgen(js_name = create)]
-    pub async fn create(canvas: HtmlCanvasElement, wgsl: String) -> Result<Renderer, JsValue> {
+    pub async fn create(canvas: HtmlCanvasElement) -> Result<Renderer, JsValue> {
         set_panic_hook();
 
-        RendererInner::from_canvas(canvas, &wgsl)
+        RendererInner::from_canvas(canvas, common::graphics::INITIAL_WGSL)
             .await
             .map(|inner| Self {
                 inner: ManuallyDrop::new(inner),

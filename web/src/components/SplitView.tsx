@@ -36,7 +36,7 @@ export function SplitView({ left, right, initial = 0.5, min = 0.3 }: Props) {
   return (
     <div
       ref={rootRef}
-      className="grid size-full"
+      className="grid size-full min-h-0 overflow-hidden"
       style={{
         gridTemplateColumns: `${ratio}fr 6px ${1 - ratio}fr`,
       }}
@@ -46,7 +46,7 @@ export function SplitView({ left, right, initial = 0.5, min = 0.3 }: Props) {
       <div
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
-        className="cursor-col-resize touch-none bg-neutral-800"
+        className="cursor-col-resize touch-none bg-[#171c27] transition-colors hover:bg-[#75d6c5]/50"
       />
 
       <div className="relative min-w-0 overflow-hidden">{right}</div>

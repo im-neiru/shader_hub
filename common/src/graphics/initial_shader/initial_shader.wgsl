@@ -3,6 +3,9 @@ struct Camera {
 };
 struct Time {
     seconds: f32,
+    _padding0: f32,
+    _padding1: f32,
+    _padding2: f32,
 };
 
 @group(0) @binding(0) var<uniform> camera: Camera;

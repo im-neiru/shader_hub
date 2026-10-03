@@ -113,7 +113,7 @@ impl World {
 
         let time_buffer = device.create_buffer_init(&BufferInitDescriptor {
             label: Some("world time uniform buffer"),
-            contents: bytemuck::bytes_of(&0.0f32),
+            contents: bytemuck::bytes_of(&[0.0f32; 4]),
             usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
         });
 
@@ -164,7 +164,11 @@ impl World {
     }
 
     pub fn update(&self, queue: &Queue, time_seconds: f32) {
-        queue.write_buffer(&self.time_buffer, 0, bytemuck::bytes_of(&time_seconds));
+        queue.write_buffer(
+            &self.time_buffer,
+            0,
+            bytemuck::bytes_of(&[time_seconds, 0.0, 0.0, 0.0]),
+        );
     }
 
     pub async fn set_wgsl(

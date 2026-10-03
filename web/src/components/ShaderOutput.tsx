@@ -224,7 +224,11 @@ export default function ShaderOutput({ controllerRef }: ShaderOutputProps) {
       animationFrame = requestAnimationFrame(render);
     }
 
-    void initialize();
+    void initialize().catch((error: unknown) => {
+      if (!cancelled) {
+        setShaderError(error instanceof Error ? error.message : String(error));
+      }
+    });
 
     return () => {
       cancelled = true;

@@ -8,7 +8,7 @@ pub trait SurfaceSize {
 }
 
 impl super::Renderer {
-    pub fn render(&mut self, surface: &impl SurfaceSize) {
+    pub fn render(&mut self, surface: &impl SurfaceSize, time_seconds: f32) {
         let Some(manager) = Self::get_manager() else {
             return;
         };
@@ -20,6 +20,7 @@ impl super::Renderer {
         let device = manager.get_device();
         let (_, queue) = manager.get_device_and_queue();
         self.camera.update(queue);
+        self.world.update(queue, time_seconds);
 
         let view = frame.texture.create_view(&TextureViewDescriptor::default());
         let msaa_view = self

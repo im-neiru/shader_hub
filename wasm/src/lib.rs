@@ -38,8 +38,8 @@ impl Renderer {
     }
 
     #[wasm_bindgen(js_name = render)]
-    pub fn render(&mut self, canvas: &HtmlCanvasElement) {
-        self.inner.render(canvas);
+    pub fn render(&mut self, canvas: &HtmlCanvasElement, time_seconds: f32) {
+        self.inner.render(canvas, time_seconds);
     }
 
     #[wasm_bindgen(js_name = setWgsl)]

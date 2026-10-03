@@ -1,10 +1,12 @@
 use glam::Vec3;
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
 use wgpu::{
-    Buffer, BufferAddress, BufferUsages, ColorTargetState, Device, ErrorFilter, FragmentState,
-    FrontFace, IndexFormat, MultisampleState, PipelineCompilationOptions, PipelineLayout,
-    PipelineLayoutDescriptor, PrimitiveState, PrimitiveTopology, RenderPass, RenderPipeline,
-    RenderPipelineDescriptor, ShaderModuleDescriptor, ShaderSource, TextureFormat, VertexAttribute,
+    BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayoutDescriptor,
+    BindGroupLayoutEntry, BindingType, Buffer, BufferAddress, BufferBindingType, BufferUsages,
+    ColorTargetState, Device, ErrorFilter, FragmentState, FrontFace, IndexFormat, MultisampleState,
+    PipelineCompilationOptions, PipelineLayout, PipelineLayoutDescriptor, PrimitiveState,
+    PrimitiveTopology, Queue, RenderPass, RenderPipeline, RenderPipelineDescriptor,
+    ShaderModuleDescriptor, ShaderSource, ShaderStages, TextureFormat, VertexAttribute,
     VertexBufferLayout, VertexState, VertexStepMode,
 };
 
@@ -40,6 +42,8 @@ pub(crate) struct World {
     vertex: Buffer,
     index: Buffer,
     index_count: u32,
+    time_buffer: Buffer,
+    time_bind_group: BindGroup,
     pipeline_layout: PipelineLayout,
     pipeline: RenderPipeline,
 }
@@ -107,9 +111,41 @@ impl World {
             usage: BufferUsages::INDEX,
         });
 
+        let time_buffer = device.create_buffer_init(&BufferInitDescriptor {
+            label: Some("world time uniform buffer"),
+            contents: bytemuck::bytes_of(&0.0f32),
+            usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
+        });
+
+        let time_bind_group_layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor {
+            label: Some("world time bind group layout"),
+            entries: &[BindGroupLayoutEntry {
+                binding: 0,
+                visibility: ShaderStages::VERTEX | ShaderStages::FRAGMENT,
+                ty: BindingType::Buffer {
+                    ty: BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            }],
+        });
+
+        let time_bind_group = device.create_bind_group(&BindGroupDescriptor {
+            label: Some("world time bind group"),
+            layout: &time_bind_group_layout,
+            entries: &[BindGroupEntry {
+                binding: 0,
+                resource: time_buffer.as_entire_binding(),
+            }],
+        });
+
         let pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
             label: Some("world pipeline layout"),
-            bind_group_layouts: &[Some(camera.bind_group_layout())],
+            bind_group_layouts: &[
+                Some(camera.bind_group_layout()),
+                Some(&time_bind_group_layout),
+            ],
             immediate_size: 0,
         });
 
@@ -120,9 +156,15 @@ impl World {
             vertex,
             index,
             index_count: indices.len() as u32,
+            time_buffer,
+            time_bind_group,
             pipeline_layout,
             pipeline,
         }
+    }
+
+    pub fn update(&self, queue: &Queue, time_seconds: f32) {
+        queue.write_buffer(&self.time_buffer, 0, bytemuck::bytes_of(&time_seconds));
     }
 
     pub async fn set_wgsl(
@@ -209,6 +251,7 @@ impl World {
         pass.set_pipeline(&self.pipeline);
 
         pass.set_bind_group(0, camera.bind_group(), &[]);
+        pass.set_bind_group(1, &self.time_bind_group, &[]);
         pass.set_vertex_buffer(0, self.vertex.slice(..));
         pass.set_index_buffer(self.index.slice(..), IndexFormat::Uint16);
 

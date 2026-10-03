@@ -176,6 +176,7 @@ export default function ShaderOutput({ controllerRef }: ShaderOutputProps) {
 
       let width = 0;
       let height = 0;
+      let startTime: number | null = null;
 
       const resize = () => {
         if (cancelled) {
@@ -207,13 +208,15 @@ export default function ShaderOutput({ controllerRef }: ShaderOutputProps) {
 
       resize();
 
-      const render = () => {
+      const render = (timestamp: number) => {
         if (cancelled) {
           return;
         }
 
+        startTime ??= timestamp;
+
         if (!isRebuildingRef.current) {
-          renderer.render(canvas);
+          renderer.render(canvas, (timestamp - startTime) / 1000);
         }
         animationFrame = requestAnimationFrame(render);
       };

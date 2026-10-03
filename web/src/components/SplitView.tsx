@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  type PointerEvent,
-  type ReactNode,
-  useRef,
-  useState,
-} from "react";
+import { type PointerEvent, type ReactNode, useRef, useState } from "react";
 
 type Props = {
   left: ReactNode;
@@ -14,12 +9,7 @@ type Props = {
   min?: number;
 };
 
-export function SplitView({
-  left,
-  right,
-  initial = 0.5,
-  min = 0.3,
-}: Props) {
+export function SplitView({ left, right, initial = 0.5, min = 0.3 }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [ratio, setRatio] = useState(initial);
 
@@ -46,24 +36,20 @@ export function SplitView({
   return (
     <div
       ref={rootRef}
-      className="grid size-full"
+      className="grid size-full min-h-0 overflow-hidden"
       style={{
         gridTemplateColumns: `${ratio}fr 6px ${1 - ratio}fr`,
       }}
     >
-      <div className="relative min-w-0 overflow-hidden">
-        {left}
-      </div>
+      <div className="relative min-w-0 overflow-hidden">{left}</div>
 
       <div
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
-        className="cursor-col-resize touch-none bg-neutral-800"
+        className="cursor-col-resize touch-none bg-[#171c27] transition-colors hover:bg-[#75d6c5]/50"
       />
 
-      <div className="relative min-w-0 overflow-hidden">
-        {right}
-      </div>
+      <div className="relative min-w-0 overflow-hidden">{right}</div>
     </div>
   );
 }

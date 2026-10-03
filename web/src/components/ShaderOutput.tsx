@@ -1,15 +1,142 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import {
+  type PointerEvent,
+  type Ref,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
+
 import { useGpuWasm } from "@/lib/hooks";
 
-type ShaderOutputProps = {
-  code: string;
+type GpuWasm = NonNullable<ReturnType<typeof useGpuWasm>>;
+type GpuRenderer = Awaited<ReturnType<GpuWasm["Renderer"]["create"]>>;
+
+export type ShaderOutputHandle = {
+  setWgsl: (wgsl: string) => void;
 };
 
-export default function ShaderOutput({ code }: ShaderOutputProps) {
+type ShaderOutputProps = {
+  controllerRef?: Ref<ShaderOutputHandle>;
+};
+
+export default function ShaderOutput({ controllerRef }: ShaderOutputProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gpuWasm = useGpuWasm();
+
+  const [shaderError, setShaderError] = useState<string | null>(null);
+
+  const wgslRef = useRef<string | null>(null);
+  const rendererRef = useRef<GpuRenderer | undefined>(undefined);
+  const compileTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const compileQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const isRebuildingRef = useRef(false);
+  const pendingResizeRef = useRef<[number, number] | null>(null);
+  const pendingOrbitRef = useRef<[number, number] | null>(null);
+  const pointerRef = useRef<{ id: number; x: number; y: number } | null>(null);
+
+  const orbit = (deltaYaw: number, deltaPitch: number) => {
+    const renderer = rendererRef.current;
+    if (!renderer) {
+      return;
+    }
+
+    if (isRebuildingRef.current) {
+      const [pendingYaw, pendingPitch] = pendingOrbitRef.current ?? [0, 0];
+      pendingOrbitRef.current = [pendingYaw + deltaYaw, pendingPitch + deltaPitch];
+      return;
+    }
+
+    renderer.orbit(deltaYaw, deltaPitch);
+  };
+
+  const handlePointerDown = (event: PointerEvent<HTMLCanvasElement>) => {
+    if (event.button !== 0) {
+      return;
+    }
+
+    event.currentTarget.setPointerCapture(event.pointerId);
+    pointerRef.current = { id: event.pointerId, x: event.clientX, y: event.clientY };
+  };
+
+  const handlePointerMove = (event: PointerEvent<HTMLCanvasElement>) => {
+    const pointer = pointerRef.current;
+    if (!pointer || pointer.id !== event.pointerId) {
+      return;
+    }
+
+    const deltaX = event.clientX - pointer.x;
+    const deltaY = event.clientY - pointer.y;
+    pointer.x = event.clientX;
+    pointer.y = event.clientY;
+
+    orbit(-deltaX * 0.01, -deltaY * 0.01);
+  };
+
+  const handlePointerUp = (event: PointerEvent<HTMLCanvasElement>) => {
+    if (pointerRef.current?.id === event.pointerId) {
+      pointerRef.current = null;
+    }
+  };
+
+  const scheduleCompile = useCallback(() => {
+    if (compileTimerRef.current) {
+      clearTimeout(compileTimerRef.current);
+    }
+
+    compileTimerRef.current = setTimeout(() => {
+      const renderer = rendererRef.current;
+      const source = wgslRef.current;
+      if (!renderer || source === null) {
+        return;
+      }
+
+      compileQueueRef.current = compileQueueRef.current.then(async () => {
+        isRebuildingRef.current = true;
+
+        try {
+          await renderer.setWgsl(source);
+          if (rendererRef.current === renderer && wgslRef.current === source) {
+            setShaderError(null);
+          }
+        } catch (error) {
+          if (rendererRef.current === renderer && wgslRef.current === source) {
+            setShaderError(error instanceof Error ? error.message : String(error));
+          }
+        } finally {
+          isRebuildingRef.current = false;
+
+          const pendingSize = pendingResizeRef.current;
+          pendingResizeRef.current = null;
+
+          if (pendingSize && rendererRef.current === renderer) {
+            renderer.resize(...pendingSize);
+          }
+
+          const pendingOrbit = pendingOrbitRef.current;
+          pendingOrbitRef.current = null;
+
+          if (pendingOrbit && rendererRef.current === renderer) {
+            renderer.orbit(...pendingOrbit);
+          }
+        }
+      });
+    }, 200);
+  }, []);
+
+  useImperativeHandle(
+    controllerRef,
+    () => ({
+      setWgsl(wgsl) {
+        wgslRef.current = wgsl;
+        scheduleCompile();
+      },
+    }),
+    [scheduleCompile],
+  );
 
   useEffect(() => {
     if (!gpuWasm) {
@@ -17,9 +144,15 @@ export default function ShaderOutput({ code }: ShaderOutputProps) {
     }
 
     const wasm = gpuWasm;
+    const initialWgsl = wasm.getDefaultWgsl();
+
+    if (wgslRef.current === null) {
+      wgslRef.current = initialWgsl;
+    }
+
     let cancelled = false;
-    let renderer: import("@/wasm").Renderer | undefined;
     let observer: ResizeObserver | undefined;
+    let animationFrame = 0;
 
     async function initialize() {
       const canvas = canvasRef.current;
@@ -29,18 +162,24 @@ export default function ShaderOutput({ code }: ShaderOutputProps) {
         return;
       }
 
-      renderer = await wasm.Renderer.create(canvas);
+      const renderer = await wasm.Renderer.create(canvas);
 
       if (cancelled) {
-        renderer = undefined;
         return;
+      }
+
+      rendererRef.current = renderer;
+
+      if (wgslRef.current !== initialWgsl) {
+        scheduleCompile();
       }
 
       let width = 0;
       let height = 0;
+      let startTime: number | null = null;
 
       const resize = () => {
-        if (!renderer || cancelled) {
+        if (cancelled) {
           return;
         }
 
@@ -57,24 +196,68 @@ export default function ShaderOutput({ code }: ShaderOutputProps) {
         canvas.width = nextWidth;
         canvas.height = nextHeight;
 
-        renderer.resize(nextWidth, nextHeight);
+        if (isRebuildingRef.current) {
+          pendingResizeRef.current = [nextWidth, nextHeight];
+        } else {
+          renderer.resize(nextWidth, nextHeight);
+        }
       };
 
       observer = new ResizeObserver(resize);
       observer.observe(container);
 
       resize();
+
+      const render = (timestamp: number) => {
+        if (cancelled) {
+          return;
+        }
+
+        startTime ??= timestamp;
+
+        if (!isRebuildingRef.current) {
+          renderer.render(canvas, (timestamp - startTime) / 1000);
+        }
+        animationFrame = requestAnimationFrame(render);
+      };
+
+      animationFrame = requestAnimationFrame(render);
     }
 
     void initialize();
 
     return () => {
       cancelled = true;
-      observer?.disconnect();
-      observer = undefined;
-      renderer = undefined;
-    };
-  }, [gpuWasm]);
 
-  return <canvas ref={canvasRef} className="block w-full h-full" />;
+      cancelAnimationFrame(animationFrame);
+      if (compileTimerRef.current) {
+        clearTimeout(compileTimerRef.current);
+      }
+      observer?.disconnect();
+
+      observer = undefined;
+      rendererRef.current = undefined;
+    };
+  }, [gpuWasm, scheduleCompile]);
+
+  return (
+    <>
+      <canvas
+        ref={canvasRef}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        className="block h-full w-full touch-none active:cursor-grabbing"
+      />
+      {shaderError && (
+        <pre
+          role="alert"
+          className="absolute inset-x-3 bottom-3 max-h-40 overflow-auto whitespace-pre-wrap rounded-sm bg-red-950/95 p-3 font-mono text-xs text-red-100"
+        >
+          {shaderError}
+        </pre>
+      )}
+    </>
+  );
 }

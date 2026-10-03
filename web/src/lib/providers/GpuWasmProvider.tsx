@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  createContext,
-  useEffect,
-  useRef,
-  useSyncExternalStore,
-} from "react";
+import { createContext, useEffect, useRef, useSyncExternalStore } from "react";
 
 type WasmModule = typeof import("@/wasm");
 

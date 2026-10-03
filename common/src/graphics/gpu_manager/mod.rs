@@ -26,7 +26,7 @@ impl GpuManager {
     }
 
     #[inline]
-    pub(crate) const fn get_queue(&self) -> &Queue {
-        &self.queue
+    pub(crate) const fn get_device_and_queue(&self) -> (&Device, &Queue) {
+        (&self.device, &self.queue)
     }
 }

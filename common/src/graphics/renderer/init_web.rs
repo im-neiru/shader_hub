@@ -3,11 +3,13 @@ use std::{cell::RefCell, rc::Rc};
 use wasm_bindgen::JsValue;
 use web_sys::{HtmlCanvasElement, console::info_1};
 use wgpu::{
-    BackendOptions, Backends, CompositeAlphaMode, InstanceDescriptor, InstanceFlags,
+    Adapter, BackendOptions, Backends, CompositeAlphaMode, InstanceDescriptor, InstanceFlags,
     MemoryBudgetThresholds, PresentMode, SurfaceColorSpace, SurfaceConfiguration, SurfaceTarget,
-    TextureFormat, TextureUsages, util::new_instance_with_webgpu_detection,
+    TextureFormat, TextureFormatFeatureFlags, TextureUsages,
+    util::new_instance_with_webgpu_detection,
 };
 
+use super::{camera::Camera, world::World};
 use crate::{errors::GpuInitError, graphics::GpuManager};
 
 thread_local! {
@@ -16,7 +18,7 @@ thread_local! {
 }
 
 impl super::Renderer {
-    pub async fn from_canvas(canvas: HtmlCanvasElement) -> Result<Self, GpuInitError> {
+    pub async fn from_canvas(canvas: HtmlCanvasElement, wgsl: &str) -> Result<Self, GpuInitError> {
         let width = canvas.width().max(1);
         let height = canvas.height().max(1);
 
@@ -110,11 +112,68 @@ impl super::Renderer {
 
         surface.configure(manager.get_device(), &config);
 
-        Ok(Self { surface, config })
+        let camera = Camera::new(manager.get_device(), width as f32 / height as f32);
+        let msaa_samples = Self::get_max_msaa_samples(manager.get_adapter(), preferred_format);
+        let msaa_texture = Self::create_msaa_texture(
+            manager.get_device(),
+            preferred_format,
+            width,
+            height,
+            msaa_samples,
+        );
+        let world = World::new(
+            manager.get_device(),
+            &camera,
+            preferred_format,
+            wgsl,
+            msaa_samples,
+        );
+
+        Ok(Self {
+            surface,
+            config,
+            msaa_texture,
+            camera,
+            world,
+            msaa_samples,
+        })
     }
 
     #[inline]
     pub(super) fn get_manager() -> Option<Rc<GpuManager>> {
         GPU_MANAGER.with(|cell| cell.borrow().clone())
+    }
+
+    pub async fn set_wgsl(&mut self, wgsl: &str) -> Result<(), String> {
+        let Some(manager) = Self::get_manager() else {
+            return Err("GPU manager is unavailable".to_owned());
+        };
+
+        self.world
+            .set_wgsl(
+                manager.get_device(),
+                self.config.format,
+                wgsl,
+                self.msaa_samples,
+            )
+            .await
+    }
+
+    #[inline]
+    fn get_max_msaa_samples(adapter: &Adapter, format: TextureFormat) -> u8 {
+        let features = adapter.get_texture_format_features(format);
+        let flags = features.flags;
+
+        if flags.contains(TextureFormatFeatureFlags::MULTISAMPLE_X16) {
+            16
+        } else if flags.contains(TextureFormatFeatureFlags::MULTISAMPLE_X8) {
+            8
+        } else if flags.contains(TextureFormatFeatureFlags::MULTISAMPLE_X4) {
+            4
+        } else if flags.contains(TextureFormatFeatureFlags::MULTISAMPLE_X2) {
+            2
+        } else {
+            1
+        }
     }
 }
